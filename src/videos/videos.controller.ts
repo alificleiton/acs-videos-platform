@@ -1,10 +1,13 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { VideosService } from './videos.service';
 import { Video } from './schemas/video.schema';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { multerConfig } from '../config/upload.config';
+import { Express } from 'express';
 
 @Controller('videos')
-@UseGuards(JwtAuthGuard)
+//@UseGuards(JwtAuthGuard)
 export class VideosController {
   constructor(private readonly videosService: VideosService) {}
 
@@ -32,5 +35,12 @@ export class VideosController {
   async delete(@Param('id') id: string): Promise<Video | null> { // ✅ Corrigido
     return this.videosService.delete(id);
   }
+
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file', multerConfig))
+  async uploadVideo(@UploadedFile() file: Express.Multer.File) {
+    return { message: 'Vídeo enviado com sucesso!', file };
+  }
 }
+
 
