@@ -6,6 +6,9 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { multerConfig } from '../config/upload.config';
 import { Express } from 'express';
+import { Query } from '@nestjs/common';
+
+import { CreateVideoDto } from './create-video.dto';
 
 @Controller('videos')
 //@UseGuards(JwtAuthGuard)
@@ -19,7 +22,7 @@ export class VideosController {
   @Post()
   @UseInterceptors(FileInterceptor('file')) // 'file' é o nome do campo no formulário
   async create(
-    @Body() videoData: { title: string; description: string },
+    @Body() videoData: CreateVideoDto,
     @UploadedFile() file: Express.Multer.File,  // 'file' é o arquivo enviado no corpo da requisição
   ): Promise<Video> {
     if (!file) {
@@ -54,8 +57,8 @@ export class VideosController {
   }
 
   @Delete(':id')
-  async delete(@Param('id') id: string): Promise<Video | null> { // ✅ Corrigido
-    return this.videosService.delete(id);
+  async remove(@Param('id') id: string) {
+    return this.videosService.remove(id);
   }
 
   @Post('upload')
@@ -64,6 +67,13 @@ export class VideosController {
     const url = await this.uploadService.uploadFile(file);
     return { url };
   }
+
+  @Get('paginated')
+  async findPaginated(@Query('page') page = 1, @Query('limit') limit = 10) {
+    return this.videosService.findPaginated(Number(page), Number(limit));
+  }
+
+  
 }
 
 
