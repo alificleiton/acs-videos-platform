@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { UploadService } from './upload.service'; // Certifique-se de que o caminho está correto
 import { VideosService } from './videos.service';
 import { Video } from './schemas/video.schema';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -9,11 +10,32 @@ import { Express } from 'express';
 @Controller('videos')
 //@UseGuards(JwtAuthGuard)
 export class VideosController {
-  constructor(private readonly videosService: VideosService) {}
+  
+  constructor(
+    private readonly videosService: VideosService,
+    private readonly uploadService: UploadService,  // Injetando o UploadService aqui
+  ) {}
 
   @Post()
-  async create(@Body() videoData: Partial<Video>): Promise<Video> {
-    return this.videosService.create(videoData);
+  @UseInterceptors(FileInterceptor('file')) // 'file' é o nome do campo no formulário
+  async create(
+    @Body() videoData: { title: string; description: string },
+    @UploadedFile() file: Express.Multer.File,  // 'file' é o arquivo enviado no corpo da requisição
+  ): Promise<Video> {
+    if (!file) {
+      throw new Error('No file uploaded');
+    }
+
+    // Chama o serviço de upload de vídeo e obtém a URL do arquivo no S3
+    const fileUrl = await this.uploadService.uploadFile(file); 
+
+    // Agora cria o vídeo no MongoDB, incluindo a URL do arquivo no S3
+    const newVideo = await this.videosService.create({
+      ...videoData,  // Desestrutura os dados do vídeo (title, description)
+      fileUrl,  // Adiciona a URL do arquivo do S3
+    });
+
+    return newVideo;
   }
 
   @Get()
@@ -37,9 +59,10 @@ export class VideosController {
   }
 
   @Post('upload')
-  @UseInterceptors(FileInterceptor('file', multerConfig))
+  @UseInterceptors(FileInterceptor('file'))
   async uploadVideo(@UploadedFile() file: Express.Multer.File) {
-    return { message: 'Vídeo enviado com sucesso!', file };
+    const url = await this.uploadService.uploadFile(file);
+    return { url };
   }
 }
 

@@ -12,10 +12,7 @@ export class Video {
   description: string;
 
   @Prop({ required: true })
-  url: string;
-
-  @Prop({ default: 0 })
-  views: number;
+  fileUrl: string;  // Novo campo para armazenar a URL do arquivo no S3
 }
 
 export const VideoSchema = SchemaFactory.createForClass(Video);
