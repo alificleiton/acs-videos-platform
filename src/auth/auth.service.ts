@@ -62,4 +62,48 @@ export class AuthService {
       user: userWithoutPassword
     };
   }
+
+  /**
+   * Busca todos os usuários cadastrados (com paginação)
+   * @param page Número da página (default: 1)
+   * @param limit Limite de itens por página (default: 10)
+   * @returns Lista de usuários e metadados de paginação
+   */
+  async findAllUsers(page: number = 1, limit: number = 10, search: string, role: string): Promise<{
+    data: Omit<UserDocument, 'password'>[],
+    total: number,
+    pages: number,
+    currentPage: number
+  }> {
+    const skip = (page - 1) * limit;
+    
+    // Busca os usuários (excluindo a senha) com paginação
+    const users = await this.userModel.find()
+      .select('-password') // Exclui o campo password
+      .skip(skip)
+      .limit(limit)
+      .exec();
+
+    // Conta o total de usuários para cálculo de páginas
+    const total = await this.userModel.countDocuments();
+    const pages = Math.ceil(total / limit);
+
+    return {
+      data: users,
+      total,
+      pages,
+      currentPage: page
+    };
+  }
+
+  /**
+   * Busca um usuário específico por ID (sem a senha)
+   * @param id ID do usuário
+   * @returns Dados do usuário (sem senha)
+   */
+  async findUserById(id: string): Promise<UserDocument | null> {
+    return this.userModel.findById(id)
+      .select('-password') // Exclui o campo password
+      .exec();
+  }
 }
