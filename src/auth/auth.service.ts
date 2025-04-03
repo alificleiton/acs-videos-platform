@@ -106,4 +106,40 @@ export class AuthService {
       .select('-password') // Exclui o campo password
       .exec();
   }
+
+  async updateUser(
+    id: string,
+    updateData: { name?: string; email?: string; role?: string }
+  ): Promise<UserDocument | null> {
+    // Verifica se o novo email já está em uso por outro usuário
+    if (updateData.email) {
+      const existingUser = await this.userModel.findOne({ 
+        email: updateData.email,
+        _id: { $ne: id } // Exclui o próprio usuário da verificação
+      });
+      
+      if (existingUser) {
+        throw new ConflictException('Email já está em uso por outro usuário');
+      }
+    }
+  
+    // Atualiza o usuário
+    const updatedUser = await this.userModel.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true } // Retorna o documento atualizado
+    ).select('-password'); // Exclui o campo password
+  
+    return updatedUser;
+  }
+  
+  /**
+   * Remove um usuário do sistema
+   * @param id ID do usuário a ser removido
+   * @returns Resultado da operação
+   */
+  async deleteUser(id: string): Promise<{ deleted: boolean }> {
+    const result = await this.userModel.deleteOne({ _id: id });
+    return { deleted: result.deletedCount > 0 };
+  }
 }

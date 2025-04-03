@@ -6,7 +6,7 @@ import {
   Query, 
   Param, 
   UseGuards,
-  NotFoundException
+  NotFoundException,Put, Delete
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -48,5 +48,28 @@ export class AuthController {
       throw new NotFoundException('Usuário não encontrado');
     }
     return user;
+  }
+
+  
+
+  @Put('users/:id')
+  async updateUser(
+    @Param('id') id: string,
+    @Body() updateData: { name?: string; email?: string; role?: string }
+  ) {
+    const updatedUser = await this.authService.updateUser(id, updateData);
+    if (!updatedUser) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+    return updatedUser;
+  }
+
+  @Delete('users/:id')
+  async deleteUser(@Param('id') id: string) {
+    const result = await this.authService.deleteUser(id);
+    if (!result.deleted) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+    return { message: 'Usuário removido com sucesso' };
   }
 }
