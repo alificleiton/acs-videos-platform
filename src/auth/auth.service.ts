@@ -1,16 +1,22 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from './schemas/user.schema';
 import { randomBytes } from 'crypto';
+import { UserService } from './user.service'; // <-- Importa
+import { MailerService } from '@nestjs-modules/mailer';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class AuthService {
+  
   constructor(
     private jwtService: JwtService,
+    private readonly userService: UserService,    
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    private readonly mailService: MailerService, // <-- injeta isso
   ) {}
 
   async register(name: string, email: string, password: string, role: string): Promise<{ message: string, user: any }> {
@@ -177,6 +183,52 @@ export class AuthService {
       accessToken: this.jwtService.sign(payload),
       user: userWithoutPassword
     };
+  }
+
+  async sendPasswordResetEmail(email: string) {
+    const user = await this.userService.findByEmail(email);
+    if (!user) {
+      throw new Error('Usuário não encontrado');
+    }
+  
+    const token = await this.jwtService.signAsync(
+      { sub: user._id.toString() },
+      { secret: process.env.JWT_SECRET, expiresIn: '15m' }
+    );
+  
+    const resetLink = `http://localhost:3001/reset-password?token=${token}`;
+  
+    // Enviar e-mail (você pode usar nodemailer ou outro serviço)
+    await this.mailService.sendMail({
+      to: user.email,
+      subject: 'Recuperação de Senha',
+      html: `<div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+               <h2>Olá ${user.name},</h2>
+               <p>Você solicitou a recuperação de senha. Clique no botão abaixo para redefinir sua senha:</p>
+               <a href="${resetLink}" style="display:inline-block; padding:10px 20px; background-color:#007BFF; color:#fff; text-decoration:none; border-radius:5px;">Redefinir Senha</a>
+               <p style="margin-top:20px;">Se você não solicitou isso, ignore este e-mail.</p>
+             </div>`,
+    });
+  
+    return { message: 'E-mail enviado com instruções para recuperar a senha' };
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    try {
+      const payload = await this.jwtService.verifyAsync(token, {
+        secret: process.env.JWT_SECRET,
+      });
+  
+      const user = await this.userService.findById(payload.sub);
+      if (!user) throw new NotFoundException('Usuário não encontrado');
+  
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await this.userService.updatePassword(user.id, hashedPassword);
+  
+      return { message: 'Senha atualizada com sucesso' };
+    } catch (err) {
+      throw new UnauthorizedException('Token inválido ou expirado');
+    }
   }
 
   

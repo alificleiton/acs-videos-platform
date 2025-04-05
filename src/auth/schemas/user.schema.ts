@@ -20,6 +20,7 @@ export class User {
     default: 'aluno'
   })
   role: string;
+  _id: any;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
