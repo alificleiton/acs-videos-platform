@@ -4,6 +4,7 @@ import * as bcrypt from 'bcryptjs';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from './schemas/user.schema';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -142,4 +143,41 @@ export class AuthService {
     const result = await this.userModel.deleteOne({ _id: id });
     return { deleted: result.deletedCount > 0 };
   }
+
+  async googleLogin(name: string, email: string): Promise<{ accessToken: string, user: any }> {
+    // Verifica se o usuário já existe
+    let user = await this.userModel.findOne({ email });
+  
+    if (!user) {
+      // Gera uma senha aleatória
+      const randomPassword = randomBytes(12).toString('hex');
+      const hashedPassword = await bcrypt.hash(randomPassword, 10);
+  
+      // Cria novo usuário com role padrão "aluno"
+      user = new this.userModel({
+        name,
+        email,
+        password: hashedPassword,
+        role: 'aluno'
+      });
+  
+      await user.save();
+    }
+  
+    // Gera token
+    const payload = { 
+      name: user.name,
+      email: user.email, 
+      role: user.role,
+      sub: user._id 
+    };
+  
+    const { password: _, ...userWithoutPassword } = user.toObject();
+    return {
+      accessToken: this.jwtService.sign(payload),
+      user: userWithoutPassword
+    };
+  }
+
+  
 }

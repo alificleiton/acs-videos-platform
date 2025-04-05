@@ -72,4 +72,11 @@ export class AuthController {
     }
     return { message: 'Usuário removido com sucesso' };
   }
+
+  @Post('google-login')
+  async googleLogin(
+    @Body() body: { name: string; email: string }
+  ) {
+    return this.authService.googleLogin(body.name, body.email);
+  }
 }
