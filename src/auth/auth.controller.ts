@@ -34,8 +34,8 @@ export class AuthController {
   async getAllUsers(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
-    @Query('search') search: string = '',
-    @Query('role') role: string = ''
+    @Query('search') search: string,
+    @Query('role') role: string
   ) {
     return this.authService.findAllUsers(page, limit, search, role);
   }
@@ -89,4 +89,6 @@ export class AuthController {
   async resetPassword(@Body() body: { token: string; password: string }) {
     return this.authService.resetPassword(body.token, body.password);
   }
+
+  
 }

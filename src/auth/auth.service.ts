@@ -76,25 +76,43 @@ export class AuthService {
    * @param limit Limite de itens por página (default: 10)
    * @returns Lista de usuários e metadados de paginação
    */
-  async findAllUsers(page: number = 1, limit: number = 10, search: string, role: string): Promise<{
+  async findAllUsers(
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+    role?: string
+  ): Promise<{
     data: Omit<UserDocument, 'password'>[],
     total: number,
     pages: number,
     currentPage: number
   }> {
     const skip = (page - 1) * limit;
-    
-    // Busca os usuários (excluindo a senha) com paginação
-    const users = await this.userModel.find()
-      .select('-password') // Exclui o campo password
+    const filtro: any = {};
+  
+    // Se foi passado um termo de busca, busca por nome ou e-mail
+    if (search) {
+      const regex = new RegExp(search, 'i'); // insensível a maiúsculas/minúsculas
+      filtro.$or = [
+        { name: { $regex: regex } },
+        { email: { $regex: regex } }
+      ];
+    }
+  
+    // Se foi passado um filtro de role, aplica
+    if (role) {
+      filtro.role = role;
+    }
+  
+    const users = await this.userModel.find(filtro)
+      .select('-password')
       .skip(skip)
       .limit(limit)
       .exec();
-
-    // Conta o total de usuários para cálculo de páginas
-    const total = await this.userModel.countDocuments();
+  
+    const total = await this.userModel.countDocuments(filtro);
     const pages = Math.ceil(total / limit);
-
+  
     return {
       data: users,
       total,
@@ -230,6 +248,8 @@ export class AuthService {
       throw new UnauthorizedException('Token inválido ou expirado');
     }
   }
+
+  
 
   
 }
