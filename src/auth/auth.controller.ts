@@ -6,14 +6,22 @@ import {
   Query, 
   Param, 
   UseGuards,
-  NotFoundException,Put, Delete
+  NotFoundException,Put, Delete,
+  UseInterceptors, UploadedFile,
+  Req
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { UploadUserAvatarService } from './upload-user-avatar.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly avatarService: UploadUserAvatarService
+  ) {}
+  
 
   @Post('register')
   async register(
@@ -89,6 +97,15 @@ export class AuthController {
   async resetPassword(@Body() body: { token: string; password: string }) {
     return this.authService.resetPassword(body.token, body.password);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('upload-avatar')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadAvatar(@UploadedFile() file: Express.Multer.File, @Req() req) {
+    const userId = req.user.sub;
+    return this.avatarService.uploadAvatar(userId, file);
+  }
+
 
   
 }

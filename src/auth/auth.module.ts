@@ -5,6 +5,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from './schemas/user.schema';
 import { JwtModule } from '@nestjs/jwt';
 import { UserModule } from './user.module'; // <-- Adicione
+import { UploadUserAvatarService } from './upload-user-avatar.service';
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { UserModule } from './user.module'; // <-- Adicione
     UserModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService],
-  exports: [JwtModule, AuthService], // 📢 Exportando o JwtModule e AuthService
+  providers: [AuthService, UploadUserAvatarService],
+  exports: [JwtModule, AuthService, UploadUserAvatarService], // 📢 Exportando o JwtModule e AuthService
 })
 export class AuthModule {}

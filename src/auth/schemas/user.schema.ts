@@ -3,7 +3,7 @@ import { Document } from 'mongoose';
 
 export type UserDocument = User & Document;
 
-@Schema()
+@Schema({ timestamps: true }) // Ativa os campos createdAt e updatedAt automaticamente
 export class User {
   @Prop({ required: true })
   name: string;
@@ -20,7 +20,14 @@ export class User {
     default: 'aluno'
   })
   role: string;
+
+  @Prop({ default: '' }) // avatarUrl como string vazia
+  avatarUrl: string;
+
   _id: any;
+
+  createdAt?: Date; // Opcionalmente adicione no TS para autocomplete
+  updatedAt?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

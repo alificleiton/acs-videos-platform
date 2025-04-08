@@ -9,6 +9,7 @@ import { UserService } from './user.service'; // <-- Importa
 import { MailerService } from '@nestjs-modules/mailer';
 import { MailService } from '../mail/mail.service';
 
+
 @Injectable()
 export class AuthService {
   
@@ -34,7 +35,8 @@ export class AuthService {
       name,
       email, 
       password: hashedPassword ,
-      role
+      role,
+      avatarUrl: '' // avatar vazio inicialmente
     });
 
     await user.save();
@@ -249,6 +251,9 @@ export class AuthService {
     }
   }
 
+  
+
+  
   
 
   

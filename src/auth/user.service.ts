@@ -20,4 +20,5 @@ export class UserService {
   async updatePassword(id: string, newPassword: string): Promise<void> {
     await this.userModel.findByIdAndUpdate(id, { password: newPassword });
   }
+  
 }
