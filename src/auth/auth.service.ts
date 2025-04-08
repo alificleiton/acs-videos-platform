@@ -61,6 +61,7 @@ export class AuthService {
       name: user.name,
       email: user.email, 
       role: user.role, // Adiciona a role no payload do JWT
+      avatarUrl: user.avatarUrl,
       sub: user._id 
     };
     
