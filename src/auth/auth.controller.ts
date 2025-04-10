@@ -14,6 +14,7 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadUserAvatarService } from './upload-user-avatar.service';
+import { UpdateProfileDto } from './update-profile.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -58,12 +59,10 @@ export class AuthController {
     return user;
   }
 
-  
-
   @Put('users/:id')
   async updateUser(
     @Param('id') id: string,
-    @Body() updateData: { name?: string; email?: string; role?: string }
+    @Body() updateData: { name?: string; email?: string; role?: string ; avatarUrl?: string }
   ) {
     const updatedUser = await this.authService.updateUser(id, updateData);
     if (!updatedUser) {
@@ -83,9 +82,9 @@ export class AuthController {
 
   @Post('google-login')
   async googleLogin(
-    @Body() body: { name: string; email: string }
+    @Body() body: { name: string; email: string , avatarUrl?: string}
   ) {
-    return this.authService.googleLogin(body.name, body.email);
+    return this.authService.googleLogin(body.name, body.email , body.avatarUrl);
   }
 
   @Post('forgot-password')
@@ -106,6 +105,31 @@ export class AuthController {
     return this.avatarService.uploadAvatar(userId, file);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Put('update-profile')
+  @UseInterceptors(FileInterceptor('avatar'))
+  async updateProfile(
+    @UploadedFile() avatar: Express.Multer.File,
+    @Body() data: UpdateProfileDto,
+    @Req() req
+  ) {
+    const userId = req.user.sub;
 
+    let avatarUrl: string | undefined;
+
+    if (avatar) {
+      try {
+        const result = await this.avatarService.uploadAvatar(userId, avatar);
+        avatarUrl = result.avatarUrl;
+      } catch (err) {
+        throw new NotFoundException('Erro ao fazer upload da imagem');
+      }
+    }
+
+    return this.authService.updateUser(userId, {
+      ...data,
+      ...(avatarUrl && { avatarUrl }),
+    });
+  }
   
 }

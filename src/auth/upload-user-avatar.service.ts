@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, S3ServiceException } from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -30,37 +30,46 @@ export class UploadUserAvatarService {
   }
 
   async uploadAvatar(userId: string, file: Express.Multer.File): Promise<{ avatarUrl: string }> {
+    if (!file || !file.buffer) {
+      throw new Error('Arquivo inválido');
+    }
+
     const fileExtension = file.originalname.split('.').pop();
     const fileKey = `users/avatars/${uuidv4()}.${fileExtension}`;
 
-    const uploadParams = {
-      Bucket: this.bucketName,
-      Key: fileKey,
-      Body: file.buffer,
-      ContentType: file.mimetype,
-    };
-
     try {
+      const uploadParams = {
+        Bucket: this.bucketName,
+        Key: fileKey,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+        ACL: 'public-read' as const, // Definindo como constante para melhor tipagem
+      };
+
       await this.s3.send(new PutObjectCommand(uploadParams));
 
       const avatarUrl = `https://${this.bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileKey}`;
 
-      const user = await this.userModel.findByIdAndUpdate(
+      const updatedUser = await this.userModel.findByIdAndUpdate(
         userId,
         { avatarUrl },
-        { new: true }
+        { new: true, runValidators: true }
       ).select('-password');
 
-      if (!user) {
+      if (!updatedUser) {
         throw new NotFoundException('Usuário não encontrado');
       }
 
-      return { avatarUrl: user.avatarUrl };
+      return { avatarUrl };
     } catch (error) {
-      console.error('Erro ao fazer upload do avatar:', error);
-      throw new Error('Falha ao fazer upload do avatar do usuário');
+      if (error instanceof S3ServiceException) {
+        console.error('Erro no S3:', error.$metadata);
+        throw new Error(`Falha no upload: ${error.message}`);
+      }
+      throw error;
     }
   }
 }
+
 
 

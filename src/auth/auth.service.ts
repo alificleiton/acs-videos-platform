@@ -171,7 +171,7 @@ export class AuthService {
     return { deleted: result.deletedCount > 0 };
   }
 
-  async googleLogin(name: string, email: string): Promise<{ accessToken: string, user: any }> {
+  async googleLogin(name: string, email: string, avatarUrl?: string): Promise<{ accessToken: string, user: any }> {
     // Verifica se o usuário já existe
     let user = await this.userModel.findOne({ email });
   
@@ -185,7 +185,8 @@ export class AuthService {
         name,
         email,
         password: hashedPassword,
-        role: 'aluno'
+        role: 'aluno',
+        avatarUrl: avatarUrl || '' // salva a foto se vier
       });
   
       await user.save();
@@ -196,6 +197,7 @@ export class AuthService {
       name: user.name,
       email: user.email, 
       role: user.role,
+      avatarUrl: user.avatarUrl,
       sub: user._id 
     };
   
@@ -252,10 +254,4 @@ export class AuthService {
     }
   }
 
-  
-
-  
-  
-
-  
 }
