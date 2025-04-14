@@ -7,6 +7,11 @@ import { AuthModule } from './auth/auth.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { MailModule } from './mail/mail.module';
+import { CategoriesModule } from './categories/categories.module';
+import { CoursesModule } from './courses/courses.module';
+import { ModulesModule } from './modules/modules.module';
+import { LessonsModule } from './lessons/lessons.module';
+
 
 @Module({
   imports: [
@@ -40,6 +45,10 @@ import { MailModule } from './mail/mail.module';
     VideosModule,
     AuthModule,
     MailModule,
+    CategoriesModule,
+    CoursesModule,
+    ModulesModule,
+    LessonsModule,
   ],
   controllers: [AppController],
 })
