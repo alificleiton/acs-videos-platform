@@ -20,6 +20,9 @@ export class Course extends Document {
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
   professorId: Types.ObjectId;
+
+  @Prop()
+  thumbnailUrl: string; // URL da imagem no S3
 }
 
 export const CourseSchema = SchemaFactory.createForClass(Course);
