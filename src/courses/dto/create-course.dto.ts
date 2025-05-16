@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsNumber, IsArray } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsArray, IsOptional } from 'class-validator';
 
 export class CreateCourseDto {
   @IsNotEmpty()
@@ -16,7 +16,7 @@ export class CreateCourseDto {
   categoryId: string;
 
   @IsArray()
-  modules: string[];
+  modules?: string[];
 
   @IsNotEmpty()
   professorId: string;
