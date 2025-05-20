@@ -9,10 +9,16 @@ import {
   ParseFilePipe,
   FileTypeValidator,
   MaxFileSizeValidator,
+  UseGuards,
+  Delete,
+  Put,
+  UploadedFiles,
 } from '@nestjs/common';
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { AnyFilesInterceptor, FileInterceptor } from '@nestjs/platform-express';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { UpdateCourseDto } from './dto/update-course.dto';
 
 @Controller('courses')
 export class CoursesController {
@@ -52,5 +58,22 @@ export class CoursesController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     return this.coursesService.createCourseWithThumbnail(dto, file);
+  }
+
+  @Put(':id')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('thumbnail')) // <- 'thumbnail' é o nome do campo no FormData
+  updateCourse(
+    @Param('id') id: string,
+    @Body() dto: UpdateCourseDto,
+    @UploadedFile() thumbnail: Express.Multer.File
+  ) {
+    return this.coursesService.updateCourse(id, dto, thumbnail);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  deleteCourse(@Param('id') id: string) {
+    return this.coursesService.deleteCourse(id);
   }
 }

@@ -4,10 +4,12 @@ import { Model } from 'mongoose';
 import { Course } from './schemas/course.schema';
 import { CreateCourseDto } from './dto/create-course.dto';
 
-import { S3Client, PutObjectCommand, S3ServiceException } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, S3ServiceException, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
+import { UpdateCourseDto } from './dto/update-course.dto';
+
 
 dotenv.config();
 
@@ -109,4 +111,71 @@ export class CoursesService {
   
     return course;
   }
+
+  
+  async updateCourse(id: string, dto: UpdateCourseDto, thumbnail?: Express.Multer.File) {
+    const course = await this.courseModel.findById(id);
+    if (!course) throw new NotFoundException('Curso não encontrado');
+
+    
+
+    if (thumbnail && course.thumbnailUrl) {
+      const key = course.thumbnailUrl.split('/').slice(-1)[0];
+      try {
+        await this.s3.send(new DeleteObjectCommand({
+          Bucket: this.bucketName,
+          Key: `courses/thumbnails/${key}`,
+        }));
+      } catch (error) {
+        console.error('Erro ao deletar imagem antiga do S3:', error);
+      }
+    }
+
+    if (thumbnail) {
+      const fileExtension = thumbnail.originalname.split('.').pop();
+      const fileKey = `courses/thumbnails/${uuidv4()}.${fileExtension}`;
+
+      await this.s3.send(new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: fileKey,
+        Body: thumbnail.buffer,
+        ContentType: thumbnail.mimetype,
+        ACL: 'public-read' as const,
+      }));
+
+      dto.thumbnailUrl = `https://${this.bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileKey}`;
+    }
+
+    
+
+    if (dto.price) {
+      dto.price = Number(dto.price);
+    }
+
+    const updated = await this.courseModel.findByIdAndUpdate(id, dto, { new: true });
+    
+
+    return updated;
+  }
+
+  async deleteCourse(id: string) {
+    const course = await this.courseModel.findById(id);
+    if (!course) throw new NotFoundException('Curso não encontrado');
+
+    // Deletar thumbnail do S3
+    if (course.thumbnailUrl) {
+      const key = course.thumbnailUrl.split('/').slice(-1)[0];
+      try {
+        await this.s3.send(new DeleteObjectCommand({
+          Bucket: this.bucketName,
+          Key: `courses/thumbnails/${key}`,
+        }));
+      } catch (error) {
+        console.error('Erro ao deletar imagem do S3:', error);
+      }
+    }
+
+    return this.courseModel.findByIdAndDelete(id);
+  }
+
 }
